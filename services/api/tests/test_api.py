@@ -5,14 +5,30 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_liveness():
-    assert client.get("/health/live").json() == {"status": "ok"}
+def test_health_is_liveness_only():
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+    assert "dependencies" not in r.json()
 
 
-def test_health_reports_database_up():
-    body = client.get("/health").json()
-    assert body["status"] == "ok"
-    assert body["database"] == "up"
+def test_ready_reports_database_up():
+    r = client.get("/ready")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ready", "dependencies": {"database": {"status": "up", "error": None}}}
+
+
+def test_ready_returns_503_when_database_down(monkeypatch):
+    from app.api import routes
+
+    def boom():
+        raise ConnectionError("db down")
+
+    monkeypatch.setattr(routes, "check_db", boom)
+    r = client.get("/ready")
+    assert r.status_code == 503
+    assert r.json()["status"] == "not_ready"
+    assert r.json()["dependencies"]["database"]["status"] == "down"
 
 
 def test_create_scan_is_persisted_without_fake_verdict():
