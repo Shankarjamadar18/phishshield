@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { api, API_URL, type ScanType } from "@/lib/api";
+import { api, API_URL, getBackendState, type ScanType } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -29,8 +29,10 @@ function Index() {
   const [value, setValue] = useState("");
 
   // Client-only: the backend runs on the user's machine, not the edge server.
-  const health = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 10000, retry: false });
-  const scans = useQuery({ queryKey: ["scans"], queryFn: api.listScans, retry: false, enabled: health.isSuccess });
+  const backend = useQuery({ queryKey: ["backend"], queryFn: getBackendState, refetchInterval: 10000, retry: false });
+  const state = backend.data;
+  const online = state?.kind === "ready";
+  const scans = useQuery({ queryKey: ["scans"], queryFn: api.listScans, retry: false, enabled: online });
   const create = useMutation({
     mutationFn: () => api.createScan(type, value.trim()),
     onSuccess: () => {
@@ -38,8 +40,6 @@ function Index() {
       qc.invalidateQueries({ queryKey: ["scans"] });
     },
   });
-
-  const online = health.data?.status === "ok";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -50,23 +50,41 @@ function Index() {
             <h1 className="mt-2 text-4xl font-bold tracking-tight">Detection Console</h1>
           </div>
           <div className="panel flex items-center gap-3 px-4 py-2 font-mono text-xs">
-            <span className={`status-dot ${online ? "status-dot-ok" : health.isLoading ? "" : "status-dot-bad"}`} />
+            <span
+              className={`status-dot ${
+                !state ? "" : state.kind === "ready" ? "status-dot-ok" : state.kind === "db_unavailable" ? "status-dot-warn" : "status-dot-bad"
+              }`}
+            />
             <span>
-              {health.isLoading
+              {!state
                 ? "connecting…"
-                : health.isError
+                : state.kind === "unreachable"
                   ? "backend unreachable"
-                  : `api v${health.data!.version} · db ${health.data!.database}`}
+                  : state.kind === "db_unavailable"
+                    ? `api v${state.health.version} · database unavailable`
+                    : `api v${state.health.version} · database ready`}
             </span>
           </div>
         </header>
 
-        {health.isError && (
+        {state?.kind === "unreachable" && (
           <div className="panel mt-6 border-destructive/50 p-4 text-sm">
             <p className="font-semibold text-destructive">Can't reach the backend at {API_URL}</p>
             <p className="mt-1 text-muted-foreground">
-              Start it with <code className="font-mono">docker compose up</code> and set{" "}
-              <code className="font-mono">VITE_API_URL</code> if it runs elsewhere.
+              No response ({state.reason}). Start it with <code className="font-mono">docker compose up</code>. A
+              hosted preview can't reach <code className="font-mono">localhost</code> on your computer — expose the
+              API with a public HTTPS URL and set <code className="font-mono">VITE_API_URL</code>.
+            </p>
+          </div>
+        )}
+        {state?.kind === "db_unavailable" && (
+          <div className="panel mt-6 border-warning/50 p-4 text-sm">
+            <p className="font-semibold text-warning">Backend is running, but the database is unavailable</p>
+            <p className="mt-1 text-muted-foreground">
+              {state.ready?.dependencies["database"]?.error
+                ? `Database check failed: ${state.ready.dependencies["database"].error}. `
+                : ""}
+              Check that PostgreSQL is up and <code className="font-mono">DATABASE_URL</code> is correct.
             </p>
           </div>
         )}

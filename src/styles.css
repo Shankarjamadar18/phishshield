@@ -42,6 +42,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -79,6 +80,7 @@
   --accent-foreground: oklch(0.94 0.01 220);
   --destructive: oklch(0.66 0.21 25);
   --destructive-foreground: oklch(0.98 0 0);
+  --warning: oklch(0.8 0.15 80);
   --border: oklch(0.32 0.025 240);
   --input: oklch(0.32 0.025 240);
   --ring: oklch(0.82 0.17 155);
@@ -157,4 +159,5 @@
   .status-dot { @apply inline-block h-2 w-2 rounded-full bg-muted-foreground; }
   .status-dot-ok { @apply bg-primary shadow-[0_0_8px_var(--primary)]; }
   .status-dot-bad { @apply bg-destructive; }
+  .status-dot-warn { @apply bg-warning; }
 }
