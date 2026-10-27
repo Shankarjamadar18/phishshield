@@ -1,29 +1,34 @@
-# Welcome to your Lovable project
+# PhishShield
 
-This project was built with [Lovable](https://lovable.dev).
+Real-time AI/ML phishing detection and prevention — final-year major project.
 
-## Build with Lovable
+## Layout
+| Path | What |
+|---|---|
+| `src/` | Web frontend (React + TypeScript + Vite/TanStack Start + Tailwind) |
+| `services/api/` | FastAPI backend: config, JSON logging, health, scans API, SQLAlchemy models |
+| `services/api/migrations/` | Alembic migrations (PostgreSQL) |
+| `services/api/tests/` | pytest integration tests (need a migrated Postgres) |
+| `apps/mobile/` | Flutter client skeleton (untested) |
+| `ml/` | Empty until Phase 3 — no datasets or models exist yet |
+| `docker-compose.yml` | Postgres + API |
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Run locally
+```bash
+docker compose up --build          # Postgres on 5432, API on 8000 (migrations run on start)
+cp .env.example .env               # VITE_API_URL=http://localhost:8000
+bun install && bun run dev         # web on http://localhost:8080
 ```
 
-## Built with
+## Tests
+```bash
+cd services/api && pip install -r requirements.txt
+export DATABASE_URL=postgresql+psycopg://phishshield:phishshield@localhost:5432/phishshield
+alembic upgrade head && pytest
+```
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## API (Phase 1)
+- `GET /health/live` — liveness
+- `GET /health` — liveness + database check
+- `POST /api/v1/scans` — store a scan request (`url|email|text`). Returns `status: pending`; no verdict is produced until detectors exist.
+- `GET /api/v1/scans` — recent scans

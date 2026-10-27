@@ -1,0 +1,15 @@
+name: phishshield_mobile
+description: PhishShield mobile client (Phase 1 skeleton).
+publish_to: none
+version: 0.1.0
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
