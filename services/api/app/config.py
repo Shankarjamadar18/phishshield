@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "postgresql+psycopg://phishshield:phishshield@localhost:5432/phishshield"
     cors_origins: str = "http://localhost:8080,http://localhost:5173"
+    # Optional regex for hosted frontends, e.g. https://.*\\.lovable\\.app
+    cors_origin_regex: str | None = None
     log_level: str = "INFO"
 
     @property

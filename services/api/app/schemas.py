@@ -5,10 +5,19 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthOut(BaseModel):
-    status: Literal["ok", "degraded"]
+    status: Literal["ok"]
     service: str
     version: str
-    database: Literal["up", "down"]
+
+
+class DependencyStatus(BaseModel):
+    status: Literal["up", "down"]
+    error: str | None = None
+
+
+class ReadyOut(BaseModel):
+    status: Literal["ready", "not_ready"]
+    dependencies: dict[str, DependencyStatus]
 
 
 class ScanCreate(BaseModel):

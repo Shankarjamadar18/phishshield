@@ -1,35 +1,41 @@
 import logging
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..db import check_db, get_db
 from ..models import Scan
-from ..schemas import HealthOut, ScanCreate, ScanOut
+from ..schemas import DependencyStatus, HealthOut, ReadyOut, ScanCreate, ScanOut
 
 VERSION = "0.1.0"
 router = APIRouter()
 log = logging.getLogger("phishshield.api")
 
 
-@router.get("/health/live")
-def live() -> dict:
-    return {"status": "ok"}
-
-
 @router.get("/health", response_model=HealthOut)
 def health() -> HealthOut:
+    """Liveness: the process is running. Does not touch dependencies."""
+    return HealthOut(status="ok", service=get_settings().app_name, version=VERSION)
+
+
+@router.get("/health/live", include_in_schema=False)
+def live() -> HealthOut:
+    return health()
+
+
+@router.get("/ready", response_model=ReadyOut)
+def ready(response: Response) -> ReadyOut:
+    """Readiness: checks every required dependency. 503 when any is down."""
     try:
-        db_up = check_db()
-    except Exception:
-        log.exception("database health check failed")
-        db_up = False
-    return HealthOut(
-        status="ok" if db_up else "degraded",
-        service=get_settings().app_name,
-        version=VERSION,
-        database="up" if db_up else "down",
-    )
+        check_db()
+        db = DependencyStatus(status="up")
+    except Exception as exc:
+        log.exception("database readiness check failed")
+        db = DependencyStatus(status="down", error=type(exc).__name__)
+    is_ready = db.status == "up"
+    if not is_ready:
+        response.status_code = 503
+    return ReadyOut(status="ready" if is_ready else "not_ready", dependencies={"database": db})
 
 
 @router.post("/api/v1/scans", response_model=ScanOut, status_code=201)
