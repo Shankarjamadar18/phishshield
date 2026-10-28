@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class HealthOut(BaseModel):
@@ -24,9 +24,12 @@ class ScanCreate(BaseModel):
     scan_type: Literal["url", "email", "text"]
     input_value: str = Field(min_length=1, max_length=20000)
 
+    @field_validator("input_value")
     @classmethod
-    def _unused(cls):
-        pass
+    def reject_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Input cannot be blank")
+        return value.strip()
 
 
 class ScanOut(BaseModel):

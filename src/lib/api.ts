@@ -46,6 +46,26 @@ export type Scan = {
   verdict: string | null;
   risk_score: number | null;
   created_at: string;
+  details: {
+    detector?: string;
+    version?: string;
+    features?: {
+      hostname: string;
+      unicode_hostname: string;
+      registered_domain: string | null;
+      suffix: string | null;
+      is_ip: boolean;
+      uses_https: boolean;
+      url_length: number;
+      hyphen_count: number;
+      subdomain_count: number;
+      has_credentials: boolean;
+      port: number | null;
+      sensitive_keywords: string[];
+    };
+    findings?: { code: string; severity: string; message: string; evidence: string }[];
+    limitations?: string;
+  };
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -53,12 +73,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(typeof body?.detail === "string" ? body.detail : `Request failed (HTTP ${res.status}).`);
+  }
   return res.json() as Promise<T>;
 }
 
 export const api = {
   listScans: () => request<Scan[]>("/api/v1/scans"),
+  getScan: (id: string) => request<Scan>(`/api/v1/scans/${encodeURIComponent(id)}`),
   createScan: (scan_type: ScanType, input_value: string) =>
     request<Scan>("/api/v1/scans", {
       method: "POST",
