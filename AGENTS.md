@@ -14,3 +14,5 @@
 - The web app talks to the backend only from the browser via `src/lib/api.ts` and `VITE_API_URL`; no TanStack server functions or Lovable Cloud. Why: the backend runs on the user's machine/Docker, not the edge worker.
 - Never return fabricated verdicts, risk scores or metrics; fields stay null until a real detector/model produces them. Why: the user forbids placeholder ML output.
 - `apps/mobile` is a Flutter client of the same API and cannot be built in this sandbox; mark it untested.
+- URL detection is an offline, versioned Python rules module using the bundled public suffix list and edit-distance library; never fetch or resolve submitted URLs. Why: avoid SSRF and keep results reproducible without inventing model probabilities.
+- Store evidence in the existing scans.details JSONB column and keep risk_score null until a calibrated model exists; non-URL scans remain pending. Why: rule findings are not phishing probabilities and need no schema change.

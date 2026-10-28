@@ -1,0 +1,1 @@
+"""Offline, deterministic detectors. No model probabilities or website requests."""

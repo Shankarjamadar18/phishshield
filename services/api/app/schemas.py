@@ -24,6 +24,10 @@ class ScanCreate(BaseModel):
     scan_type: Literal["url", "email", "text"]
     input_value: str = Field(min_length=1, max_length=20000)
 
+    @classmethod
+    def _unused(cls):
+        pass
+
 
 class ScanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -33,4 +37,5 @@ class ScanOut(BaseModel):
     status: str
     verdict: str | None
     risk_score: float | None
+    details: dict
     created_at: datetime
